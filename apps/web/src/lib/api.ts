@@ -9,7 +9,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const { token, _retry, ...init } = options;
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(init.body !== undefined && init.body !== null ? { 'Content-Type': 'application/json' } : {}),
     ...(init.headers as Record<string, string> | undefined),
   };
 
