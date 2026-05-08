@@ -176,7 +176,7 @@ export default function Party() {
   const handlePlaybackUpdate = useCallback((state: PlaybackState) => setPlayback(state), []);
 
   // Wire live socket — will replace mock data once server emits queue:state
-  useSocket(partyId, handlePlaybackUpdate);
+  useSocket(partyId, handlePlaybackUpdate, !hydrating);
 
   const handleSearch = async (query: string) => {
     setSearchLoading(true);

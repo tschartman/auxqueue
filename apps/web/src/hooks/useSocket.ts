@@ -11,6 +11,7 @@ import { api } from '../lib/api';
 export function useSocket(
   partyId: string,
   onPlaybackUpdate?: (state: PlaybackState) => void,
+  ready = true,
 ) {
   const { sessionToken, accessToken } = useUserStore();
   const { setSocket, setStatus } = useSocketStore();
@@ -24,6 +25,7 @@ export function useSocket(
   );
 
   useEffect(() => {
+    if (!ready) return;
     const token = sessionToken ?? accessToken ?? undefined;
     const socket = getSocket(token);
     setSocket(socket);
@@ -102,5 +104,5 @@ export function useSocket(
         socket.off('playback:track_changed');
       }
     };
-  }, [partyId]);
+  }, [partyId, ready]);
 }

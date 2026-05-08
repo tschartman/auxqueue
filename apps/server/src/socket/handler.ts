@@ -45,6 +45,14 @@ export function registerSocketHandler(io: AuxServer) {
       const items = await queueService.getQueue(partyId);
       socket.emit('queue:state', { items, nowPlaying: null });
 
+      // Send current guest list to host on join/rejoin
+      if (socket.data.isHost) {
+        const guests = await guestService.getGuestsByParty(partyId);
+        for (const g of guests) {
+          socket.emit('guest:joined', { guest: { id: g.id, name: g.displayName, avatar: g.avatar } });
+        }
+      }
+
       // Start playback engine when host joins (one engine per party)
       if (socket.data.isHost && !engines.has(partyId)) {
         try {
