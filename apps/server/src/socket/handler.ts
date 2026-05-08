@@ -49,7 +49,7 @@ export function registerSocketHandler(io: AuxServer) {
       if (socket.data.isHost) {
         const guests = await guestService.getGuestsByParty(partyId);
         for (const g of guests) {
-          socket.emit('guest:joined', { guest: { id: g.id, name: g.displayName, avatar: g.avatar } });
+          socket.emit('guest:joined', { guest: { id: g.id, name: g.displayName, avatar: g.avatar, tier: 'free' } });
         }
       }
 
