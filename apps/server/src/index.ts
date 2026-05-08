@@ -14,6 +14,7 @@ import { searchRoutes } from './routes/search';
 import { userRoutes } from './routes/users';
 import { registerSocketHandler } from './socket/handler';
 import { setIo } from './socket/io';
+import { cleanupOldParties } from './services/partyService';
 
 const fastify = Fastify({ logger: config.NODE_ENV !== 'test' });
 
@@ -52,6 +53,9 @@ async function start() {
 
   setIo(io);
   registerSocketHandler(io);
+
+  cleanupOldParties().catch(() => {});
+  setInterval(() => cleanupOldParties().catch(() => {}), 60 * 60 * 1000);
 
   const shutdown = async () => {
     fastify.log.info('Shutting down...');

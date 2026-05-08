@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { registerSchema, loginSchema } from '@auxqueue/shared';
 import * as userService from '../services/userService';
+import * as partyService from '../services/partyService';
 import { signToken, signRefreshToken, verifyToken } from '../middleware/auth';
 import { config } from '../config';
 import { SpotifyAdapter } from '../streaming/spotify';
@@ -112,6 +113,37 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     return { accessToken };
   });
 
+  fastify.get('/me', async (request, reply) => {
+    const token = (request.cookies as Record<string, string | undefined>).refreshToken;
+    if (!token) return reply.code(401).send({ error: 'Not authenticated' });
+
+    const payload = verifyToken(token);
+    if (payload?.type !== 'refresh') {
+      return reply.code(401).send({ error: 'Invalid or expired session' });
+    }
+
+    const user = await userService.getUserById(payload.userId);
+    if (!user) return reply.code(401).send({ error: 'User not found' });
+
+    const activeParty = await partyService.getActivePartyForUser(user.id);
+    const accessToken = signToken(user.id);
+    const refreshToken = signRefreshToken(user.id);
+
+    reply.setCookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: config.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60,
+    });
+
+    return {
+      accessToken,
+      user: { id: user.id, displayName: user.displayName, avatar: user.avatar },
+      activePartyId: activeParty?.id ?? null,
+    };
+  });
+
   fastify.get('/oauth/spotify', async (request, reply) => {
     const spotify = new SpotifyAdapter('');
     return reply.redirect(spotify.getAuthUrl());
@@ -184,8 +216,14 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         maxAge: 7 * 24 * 60 * 60,
       });
 
-      // Redirect back to host connect with access token in query param
-      // (short-lived; client stores it in memory immediately)
+      // If user already has an active party, send them straight back to it
+      const activeParty = await partyService.getActivePartyForUser(user.id);
+      if (activeParty) {
+        return reply.redirect(
+          `${config.CORS_ORIGIN}/party/${activeParty.id}?accessToken=${accessToken}`,
+        );
+      }
+
       return reply.redirect(
         `${config.CORS_ORIGIN}/host/connect?accessToken=${accessToken}&spotifyConnected=1`,
       );

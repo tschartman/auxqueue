@@ -1,6 +1,6 @@
 import { db } from '../db/client';
 import { parties } from '../db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, lt, desc } from 'drizzle-orm';
 import { ROOM_CODE_CHARS, ROOM_CODE_LENGTH, ROOM_CODE_PREFIX } from '@auxqueue/shared';
 import type { PartySettings } from '@auxqueue/shared';
 
@@ -62,6 +62,24 @@ export async function updateSettings(partyId: string, settings: Partial<PartySet
     .where(eq(parties.id, partyId))
     .returning();
   return updated;
+}
+
+export async function getActivePartyForUser(userId: string) {
+  const [party] = await db
+    .select()
+    .from(parties)
+    .where(and(eq(parties.hostUserId, userId), eq(parties.status, 'active')))
+    .orderBy(desc(parties.createdAt))
+    .limit(1);
+  return party ?? null;
+}
+
+export async function cleanupOldParties() {
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  await db
+    .update(parties)
+    .set({ status: 'ended', endedAt: new Date() })
+    .where(and(eq(parties.status, 'active'), lt(parties.createdAt, cutoff)));
 }
 
 export async function endParty(partyId: string) {

@@ -115,15 +115,23 @@ export default function Party() {
           return;
         }
 
-        // 2. Try host refresh cookie
+        // 2. Try access token from URL (OAuth resume redirect) or refresh cookie
         let token: string | undefined;
-        try {
-          const refreshed = await api.post<{ accessToken: string }>('/api/auth/refresh');
-          useUserStore.getState().setAccessToken(refreshed.accessToken);
-          token = refreshed.accessToken;
-        } catch {
-          navigate('/');
-          return;
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlToken = urlParams.get('accessToken');
+        if (urlToken) {
+          token = urlToken;
+          useUserStore.getState().setAccessToken(urlToken);
+          window.history.replaceState({}, '', window.location.pathname);
+        } else {
+          try {
+            const refreshed = await api.post<{ accessToken: string }>('/api/auth/refresh');
+            useUserStore.getState().setAccessToken(refreshed.accessToken);
+            token = refreshed.accessToken;
+          } catch {
+            navigate('/');
+            return;
+          }
         }
 
         const party = await api.get<{
