@@ -115,11 +115,15 @@ export default function Party() {
           return;
         }
 
-        // 2. Try access token from URL (OAuth resume redirect) or refresh cookie
+        // 2. Try token from: store (in-memory nav) → URL param (OAuth redirect) → refresh cookie
         let token: string | undefined;
         const urlParams = new URLSearchParams(window.location.search);
         const urlToken = urlParams.get('accessToken');
-        if (urlToken) {
+        const storeToken = useUserStore.getState().accessToken;
+
+        if (storeToken) {
+          token = storeToken;
+        } else if (urlToken) {
           token = urlToken;
           useUserStore.getState().setAccessToken(urlToken);
           window.history.replaceState({}, '', window.location.pathname);
