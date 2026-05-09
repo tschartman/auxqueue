@@ -65,13 +65,18 @@ export function registerSocketHandler(io: AuxServer) {
       }
 
       // Start playback engine when host joins (one engine per party)
-      if (socket.data.isHost && !engines.has(partyId)) {
-        try {
-          const engine = new PlaybackSyncEngine(partyId, io);
-          engine.start();
-          engines.set(partyId, engine);
-        } catch {
-          // No Spotify account linked yet — engine will be skipped
+      if (socket.data.isHost) {
+        if (!engines.has(partyId)) {
+          try {
+            const engine = new PlaybackSyncEngine(partyId, io);
+            engine.start();
+            engines.set(partyId, engine);
+          } catch {
+            // No Spotify account linked yet — engine will be skipped
+          }
+        } else {
+          // Engine already running — send current state immediately to this socket
+          engines.get(partyId)?.pollNow().catch(() => {});
         }
       }
 

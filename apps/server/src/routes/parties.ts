@@ -9,6 +9,7 @@ import type { PartySettings } from '@auxqueue/shared';
 import { requireAuth } from '../middleware/auth';
 import * as partyService from '../services/partyService';
 import * as guestService from '../services/guestService';
+import { getAdapterForParty } from '../streaming/getAdapter';
 
 const DEFAULT_SETTINGS: PartySettings = {
   queueMode: 'vote',
@@ -141,6 +142,24 @@ export const partyRoutes: FastifyPluginAsync = async (fastify) => {
 
     const guest = await guestService.updateGuestStatus(guestId, body.status);
     return { guest };
+  });
+
+  // GET /api/parties/:id/playback — debug: raw Spotify playback state for host
+  fastify.get('/:id/playback', { preHandler: requireAuth }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const userId = (request as any).userId as string;
+
+    const party = await partyService.getPartyById(id);
+    if (!party) return reply.code(404).send({ error: 'Party not found' });
+    if (party.hostUserId !== userId) return reply.code(403).send({ error: 'Forbidden' });
+
+    try {
+      const adapter = await getAdapterForParty(id);
+      const state = await adapter.getPlaybackState();
+      return { ok: true, state };
+    } catch (err: any) {
+      return reply.code(500).send({ ok: false, error: err?.message ?? 'Unknown error' });
+    }
   });
 
   fastify.delete('/:id/guests/:guestId', { preHandler: requireAuth }, async (request, reply) => {

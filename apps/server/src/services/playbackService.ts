@@ -23,7 +23,12 @@ export class PlaybackSyncEngine {
   }
 
   start() {
+    this.poll().catch(() => {});
     this.pollInterval = setInterval(() => this.poll(), PLAYBACK_POLL_INTERVAL_MS);
+  }
+
+  async pollNow() {
+    return this.poll();
   }
 
   stop() {
@@ -36,6 +41,7 @@ export class PlaybackSyncEngine {
     try {
       const adapter = await getAdapterForParty(this.partyId);
       const state = await adapter.getPlaybackState();
+      console.log(`[PlaybackEngine][${this.partyId}] poll: isPlaying=${state.isPlaying} track=${state.track?.uri ?? 'none'} progress=${state.progressMs}/${state.durationMs}`);
       this.io.to(this.partyId).emit('playback:update', state);
 
       const currentUri = state.track?.uri ?? null;
