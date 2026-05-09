@@ -45,8 +45,26 @@ export class PlaybackSyncEngine {
         this.lastTrackUri = currentUri;
         this.nextSongPushed = false;
 
-        // Remove the newly-playing song from the queue immediately
-        if (currentUri) await this.markFinishedItem(currentUri);
+        if (currentUri) {
+          // Check if this track is from our queue
+          const queuedItem = await queueService.getQueuedItemByUri(this.partyId, currentUri);
+
+          if (queuedItem) {
+            // Our song is playing — mark it played
+            await queueService.markAsPlayed(queuedItem.id);
+            this.io.to(this.partyId).emit('queue:removed', { queueItemId: queuedItem.id });
+          } else {
+            // A song NOT from our queue started — override with our next item if we have one
+            const nextItem = await queueService.getNextItem(this.partyId);
+            if (nextItem) {
+              console.log(`[PlaybackEngine][${this.partyId}] Non-queue track detected, overriding with ${nextItem.trackUri}`);
+              await adapter.playTrack(nextItem.trackUri);
+              this.lastTrackUri = null; // reset so next poll detects the change
+              this.nextSongPushed = false;
+              return;
+            }
+          }
+        }
 
         if (wasPlaying) {
           this.io.to(this.partyId).emit('playback:track_changed', { track: state.track });
@@ -68,13 +86,6 @@ export class PlaybackSyncEngine {
         console.error(`[PlaybackEngine][${this.partyId}] poll error:`, err);
       }
     }
-  }
-
-  private async markFinishedItem(trackUri: string) {
-    const item = await queueService.getQueuedItemByUri(this.partyId, trackUri);
-    if (!item) return;
-    await queueService.markAsPlayed(item.id);
-    this.io.to(this.partyId).emit('queue:removed', { queueItemId: item.id });
   }
 
   private async pushNextSong(adapter: Awaited<ReturnType<typeof getAdapterForParty>>) {

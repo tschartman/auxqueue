@@ -12,7 +12,7 @@ import { partyRoutes } from './routes/parties';
 import { queueRoutes } from './routes/queue';
 import { searchRoutes } from './routes/search';
 import { userRoutes } from './routes/users';
-import { registerSocketHandler } from './socket/handler';
+import { registerSocketHandler, startEnginesForActiveParties } from './socket/handler';
 import { setIo } from './socket/io';
 import { cleanupOldParties } from './services/partyService';
 
@@ -53,6 +53,7 @@ async function start() {
 
   setIo(io);
   registerSocketHandler(io);
+  startEnginesForActiveParties(io).catch(() => {});
 
   cleanupOldParties().catch(() => {});
   setInterval(() => cleanupOldParties().catch(() => {}), 60 * 60 * 1000);

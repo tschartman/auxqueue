@@ -16,4 +16,5 @@ export interface StreamingAdapter {
   pause(): Promise<void>;
   skipToNext(): Promise<void>;
   addToQueue(trackUri: string): Promise<void>;
+  playTrack(trackUri: string): Promise<void>;
 }

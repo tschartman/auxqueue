@@ -107,6 +107,13 @@ export class SpotifyAdapter implements StreamingAdapter {
     await this.apiRequest('/me/player/play', { method: 'PUT' });
   }
 
+  async playTrack(trackUri: string): Promise<void> {
+    await this.apiRequest('/me/player/play', {
+      method: 'PUT',
+      body: JSON.stringify({ uris: [trackUri] }),
+    });
+  }
+
   async pause(): Promise<void> {
     await this.apiRequest('/me/player/pause', { method: 'PUT' });
   }

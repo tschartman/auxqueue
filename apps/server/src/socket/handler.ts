@@ -14,6 +14,17 @@ const engines = new Map<string, PlaybackSyncEngine>();
 type AuxSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
 type AuxServer = Server<ClientToServerEvents, ServerToClientEvents>;
 
+export async function startEnginesForActiveParties(io: AuxServer) {
+  const activeParties = await partyService.getActiveParties();
+  for (const party of activeParties) {
+    if (!engines.has(party.id)) {
+      const engine = new PlaybackSyncEngine(party.id, io);
+      engine.start();
+      engines.set(party.id, engine);
+    }
+  }
+}
+
 export function registerSocketHandler(io: AuxServer) {
   io.use(socketAuthMiddleware);
 
@@ -209,10 +220,7 @@ export function registerSocketHandler(io: AuxServer) {
       const partyId = socket.data.partyId as string | undefined;
       if (!partyId) return;
 
-      if (socket.data.isHost) {
-        engines.get(partyId)?.stop();
-        engines.delete(partyId);
-      } else {
+      if (!socket.data.isHost) {
         io.to(partyId).emit('guest:left', {
           guestId: socket.data.guestId ?? socket.id,
         });

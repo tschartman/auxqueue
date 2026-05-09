@@ -64,6 +64,10 @@ export async function updateSettings(partyId: string, settings: Partial<PartySet
   return updated;
 }
 
+export async function getActiveParties() {
+  return db.select().from(parties).where(eq(parties.status, 'active'));
+}
+
 export async function getActivePartyForUser(userId: string) {
   const [party] = await db
     .select()
