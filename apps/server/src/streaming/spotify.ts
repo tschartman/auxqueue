@@ -73,6 +73,15 @@ export class SpotifyAdapter implements StreamingAdapter {
       return { isPlaying: false, track: null, progressMs: 0, durationMs: 0 };
     }
 
+    if (res.status === 429) {
+      const retryAfter = Number(res.headers.get('Retry-After') ?? 5);
+      throw new Error(`rate_limited:${retryAfter}`);
+    }
+
+    if (!res.ok) {
+      throw new Error(`Spotify API error: ${res.status}`);
+    }
+
     const data = await res.json();
     const item = data.item;
 

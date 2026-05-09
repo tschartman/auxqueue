@@ -32,5 +32,5 @@ export const MAX_PARTY_NAME_LENGTH = 100;
 export const DEFAULT_MAX_PER_GUEST = 5;
 export const DEFAULT_VOTE_OUT_THRESHOLD = -3;
 export const MAX_SEARCH_RESULTS = 10;
-export const PLAYBACK_POLL_INTERVAL_MS = 3000;
+export const PLAYBACK_POLL_INTERVAL_MS = 5000;
 export const NEXT_SONG_THRESHOLD_MS = 15000;

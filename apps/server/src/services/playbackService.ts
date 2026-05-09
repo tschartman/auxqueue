@@ -12,6 +12,7 @@ export class PlaybackSyncEngine {
   private pollInterval: NodeJS.Timeout | null = null;
   private lastTrackUri: string | null = null;
   private nextSongPushed = false;
+  private pausedUntil = 0;
 
   constructor(
     partyId: string,
@@ -31,6 +32,7 @@ export class PlaybackSyncEngine {
   }
 
   private async poll() {
+    if (Date.now() < this.pausedUntil) return;
     try {
       const adapter = await getAdapterForParty(this.partyId);
       const state = await adapter.getPlaybackState();
@@ -57,8 +59,14 @@ export class PlaybackSyncEngine {
           await this.pushNextSong(adapter);
         }
       }
-    } catch (err) {
-      console.error(`[PlaybackEngine][${this.partyId}] poll error:`, err);
+    } catch (err: any) {
+      if (err?.message?.startsWith('rate_limited:')) {
+        const seconds = Number(err.message.split(':')[1]) || 10;
+        this.pausedUntil = Date.now() + seconds * 1000;
+        console.warn(`[PlaybackEngine][${this.partyId}] rate limited, pausing ${seconds}s`);
+      } else {
+        console.error(`[PlaybackEngine][${this.partyId}] poll error:`, err);
+      }
     }
   }
 
