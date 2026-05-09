@@ -27,6 +27,15 @@ export async function startEnginesForActiveParties(io: AuxServer) {
   }
 }
 
+export function stopEngineForParty(partyId: string) {
+  const engine = engines.get(partyId);
+  if (engine) {
+    engine.stop();
+    engines.delete(partyId);
+    console.log(`[Engine] Stopped engine for ended party ${partyId}`);
+  }
+}
+
 export function registerSocketHandler(io: AuxServer) {
   io.use(socketAuthMiddleware);
 

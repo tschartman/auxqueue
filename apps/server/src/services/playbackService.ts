@@ -35,6 +35,7 @@ export class PlaybackSyncEngine {
   private lastTrackUri: string | null = null;
   private nextSongPushed = false;
   private pausedUntil = 0;
+  private idleStreak = 0; // consecutive polls with nothing playing
 
   constructor(
     partyId: string,
@@ -75,9 +76,21 @@ export class PlaybackSyncEngine {
         this.stop();
         return;
       }
+      // Adaptive backoff: when nothing is playing, poll less often
+      // idle < 12 polls (1 min) → every 5s; < 60 polls (5 min) → every 30s; else → every 60s
+      if (this.idleStreak >= 60 && this.idleStreak % 12 !== 0) return;
+      if (this.idleStreak >= 12 && this.idleStreak % 6 !== 0) return;
+
       const adapter = await getAdapterForParty(this.partyId);
       const state = await adapter.getPlaybackState();
       console.log(`[PlaybackEngine][${this.partyId}] poll: isPlaying=${state.isPlaying} track=${state.track?.uri ?? 'none'} progress=${state.progressMs}/${state.durationMs}`);
+
+      if (!state.track) {
+        this.idleStreak++;
+      } else {
+        this.idleStreak = 0;
+      }
+
       this.io.to(this.partyId).emit('playback:update', state);
 
       const currentUri = state.track?.uri ?? null;

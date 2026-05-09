@@ -86,11 +86,17 @@ export async function cleanupOldParties() {
     .where(and(eq(parties.status, 'active'), lt(parties.createdAt, cutoff)));
 }
 
-export async function endActivePartiesForUser(userId: string) {
+export async function endActivePartiesForUser(userId: string): Promise<string[]> {
+  const active = await db
+    .select({ id: parties.id })
+    .from(parties)
+    .where(and(eq(parties.hostUserId, userId), eq(parties.status, 'active')));
+  if (active.length === 0) return [];
   await db
     .update(parties)
     .set({ status: 'ended', endedAt: new Date() })
     .where(and(eq(parties.hostUserId, userId), eq(parties.status, 'active')));
+  return active.map((p) => p.id);
 }
 
 export async function endParty(partyId: string) {
