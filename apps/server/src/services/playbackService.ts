@@ -57,8 +57,8 @@ export class PlaybackSyncEngine {
           await this.pushNextSong(adapter);
         }
       }
-    } catch {
-      // Swallow polling errors; Spotify may be temporarily unavailable
+    } catch (err) {
+      console.error(`[PlaybackEngine][${this.partyId}] poll error:`, err);
     }
   }
 

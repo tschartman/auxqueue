@@ -443,7 +443,16 @@ export default function Party() {
           {activeTab === 'settings' && (
             <div className="flex flex-col gap-4">
               <h2 className="font-heading text-base font-bold text-white">Party Settings</h2>
-              <PartySettings settings={settings} isHost={isHost} onChange={updateSettings} />
+              <PartySettings
+                settings={settings}
+                isHost={isHost}
+                onChange={async (patch) => {
+                  updateSettings(patch);
+                  if (isHost && partyId) {
+                    await api.patch(`/api/parties/${partyId}/settings`, patch, { token: accessToken ?? undefined }).catch(() => {});
+                  }
+                }}
+              />
               {isHost && (
                 <div className="mt-4 pt-4 border-t border-border">
                   <button

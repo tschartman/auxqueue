@@ -53,7 +53,7 @@ export default function HostSetup() {
   const [queueMode, setQueueMode] = useState<PartySettings['queueMode']>('vote');
   const [approvalRequired, setApprovalRequired] = useState(false);
   const [explicitFilter, setExplicitFilter] = useState(false);
-  const [maxPerGuest, setMaxPerGuest] = useState(5);
+  const [maxPerGuest, setMaxPerGuest] = useState(10);
   const [voteOutThreshold, setVoteOutThreshold] = useState(-3);
   const [lockOnDeck, setLockOnDeck] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
