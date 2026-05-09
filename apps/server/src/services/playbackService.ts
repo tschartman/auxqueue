@@ -5,6 +5,28 @@ import { getAdapterForParty } from '../streaming/getAdapter';
 import * as queueService from './queueService';
 import * as partyService from './partyService';
 import type { PartySettings } from '@auxqueue/shared';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+
+function rateLimitFile(partyId: string) {
+  return path.join(os.tmpdir(), `auxqueue-rl-${partyId}.json`);
+}
+
+function readPersistedPause(partyId: string): number {
+  try {
+    const data = JSON.parse(fs.readFileSync(rateLimitFile(partyId), 'utf8'));
+    return typeof data.pausedUntil === 'number' ? data.pausedUntil : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writePersistedPause(partyId: string, pausedUntil: number) {
+  try {
+    fs.writeFileSync(rateLimitFile(partyId), JSON.stringify({ pausedUntil }));
+  } catch { /* best-effort */ }
+}
 
 export class PlaybackSyncEngine {
   private partyId: string;
@@ -20,15 +42,23 @@ export class PlaybackSyncEngine {
   ) {
     this.partyId = partyId;
     this.io = io;
+    this.pausedUntil = readPersistedPause(partyId);
+    if (this.pausedUntil > Date.now()) {
+      const remainingSec = Math.round((this.pausedUntil - Date.now()) / 1000);
+      console.warn(`[PlaybackEngine][${partyId}] restoring rate limit pause: ${remainingSec}s remaining`);
+    }
   }
 
   start() {
-    this.poll().catch(() => {});
     this.pollInterval = setInterval(() => this.poll(), PLAYBACK_POLL_INTERVAL_MS);
   }
 
   async pollNow() {
     return this.poll();
+  }
+
+  isRunning() {
+    return this.pollInterval !== null;
   }
 
   stop() {
@@ -39,6 +69,12 @@ export class PlaybackSyncEngine {
   private async poll() {
     if (Date.now() < this.pausedUntil) return;
     try {
+      const party = await partyService.getPartyById(this.partyId);
+      if (!party || party.status !== 'active') {
+        console.log(`[PlaybackEngine][${this.partyId}] party ended, stopping engine`);
+        this.stop();
+        return;
+      }
       const adapter = await getAdapterForParty(this.partyId);
       const state = await adapter.getPlaybackState();
       console.log(`[PlaybackEngine][${this.partyId}] poll: isPlaying=${state.isPlaying} track=${state.track?.uri ?? 'none'} progress=${state.progressMs}/${state.durationMs}`);
@@ -87,6 +123,7 @@ export class PlaybackSyncEngine {
       if (err?.message?.startsWith('rate_limited:')) {
         const seconds = Number(err.message.split(':')[1]) || 10;
         this.pausedUntil = Date.now() + seconds * 1000;
+        writePersistedPause(this.partyId, this.pausedUntil);
         console.warn(`[PlaybackEngine][${this.partyId}] rate limited, pausing ${seconds}s`);
       } else {
         console.error(`[PlaybackEngine][${this.partyId}] poll error:`, err);
