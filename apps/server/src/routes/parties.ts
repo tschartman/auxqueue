@@ -25,6 +25,8 @@ export const partyRoutes: FastifyPluginAsync = async (fastify) => {
     const body = createPartySchema.parse(request.body);
     const userId = (request as any).userId as string;
 
+    await partyService.endActivePartiesForUser(userId);
+
     const party = await partyService.createParty(
       userId,
       body.partyName,

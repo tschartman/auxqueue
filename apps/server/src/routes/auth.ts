@@ -216,14 +216,6 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         maxAge: 7 * 24 * 60 * 60,
       });
 
-      // If user already has an active party, send them straight back to it
-      const activeParty = await partyService.getActivePartyForUser(user.id);
-      if (activeParty) {
-        return reply.redirect(
-          `${config.CORS_ORIGIN}/party/${activeParty.id}?accessToken=${accessToken}`,
-        );
-      }
-
       return reply.redirect(
         `${config.CORS_ORIGIN}/host/connect?accessToken=${accessToken}&spotifyConnected=1`,
       );

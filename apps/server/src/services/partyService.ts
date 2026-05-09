@@ -86,6 +86,13 @@ export async function cleanupOldParties() {
     .where(and(eq(parties.status, 'active'), lt(parties.createdAt, cutoff)));
 }
 
+export async function endActivePartiesForUser(userId: string) {
+  await db
+    .update(parties)
+    .set({ status: 'ended', endedAt: new Date() })
+    .where(and(eq(parties.hostUserId, userId), eq(parties.status, 'active')));
+}
+
 export async function endParty(partyId: string) {
   const [updated] = await db
     .update(parties)

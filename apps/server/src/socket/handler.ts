@@ -16,11 +16,13 @@ type AuxServer = Server<ClientToServerEvents, ServerToClientEvents>;
 
 export async function startEnginesForActiveParties(io: AuxServer) {
   const activeParties = await partyService.getActiveParties();
+  console.log(`[Startup] Found ${activeParties.length} active parties, starting engines...`);
   for (const party of activeParties) {
     if (!engines.has(party.id)) {
       const engine = new PlaybackSyncEngine(party.id, io);
       engine.start();
       engines.set(party.id, engine);
+      console.log(`[Startup] Engine started for party ${party.id}`);
     }
   }
 }
