@@ -90,6 +90,7 @@ export const partyRoutes: FastifyPluginAsync = async (fastify) => {
     const party = await partyService.getPartyById(id);
     if (!party) return reply.code(404).send({ error: 'Party not found' });
     if (party.hostUserId !== userId) return reply.code(403).send({ error: 'Forbidden' });
+    if (party.status !== 'active') return reply.code(410).send({ error: 'Party has ended' });
 
     return party;
   });
