@@ -41,6 +41,7 @@ export function registerSocketHandler(io: AuxServer) {
 
   io.on('connection', (socket: AuxSocket) => {
     socket.on('party:join', async ({ partyId, sessionToken: providedToken }) => {
+      try {
       const party = await partyService.getPartyById(partyId);
       if (!party || party.status !== 'active') return;
 
@@ -101,6 +102,9 @@ export function registerSocketHandler(io: AuxServer) {
             tier: 'Listener',
           },
         });
+      }
+      } catch (err) {
+        console.error(`[Socket] party:join error for party ${partyId}:`, err);
       }
     });
 
