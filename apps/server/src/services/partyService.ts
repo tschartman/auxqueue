@@ -79,7 +79,7 @@ export async function getActivePartyForUser(userId: string) {
 }
 
 export async function cleanupOldParties() {
-  const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
   await db
     .update(parties)
     .set({ status: 'ended', endedAt: new Date() })
