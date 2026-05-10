@@ -55,7 +55,7 @@ export class PlaybackSyncEngine {
   }
 
   async pollNow() {
-    return this.poll();
+    return this.poll(true);
   }
 
   isRunning() {
@@ -67,7 +67,7 @@ export class PlaybackSyncEngine {
     this.pollInterval = null;
   }
 
-  private async poll() {
+  private async poll(force = false) {
     if (Date.now() < this.pausedUntil) return;
     try {
       const party = await partyService.getPartyById(this.partyId);
@@ -78,8 +78,10 @@ export class PlaybackSyncEngine {
       }
       // Adaptive backoff: when nothing is playing, poll less often
       // idle < 12 polls (1 min) → every 5s; < 60 polls (5 min) → every 30s; else → every 60s
-      if (this.idleStreak >= 60 && this.idleStreak % 12 !== 0) return;
-      if (this.idleStreak >= 12 && this.idleStreak % 6 !== 0) return;
+      if (!force) {
+        if (this.idleStreak >= 60 && this.idleStreak % 12 !== 0) return;
+        if (this.idleStreak >= 12 && this.idleStreak % 6 !== 0) return;
+      }
 
       const adapter = await getAdapterForParty(this.partyId);
       const state = await adapter.getPlaybackState();
